@@ -1,0 +1,10 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: vectorflow-postgres
+    environment:
+      POSTGRES_USER: vectorflow
+      POSTGRES_PASSWORD: vectorflow
+      POSTGRES_DB: vectorflow_db
+    ports:
+      - "5432:5432"

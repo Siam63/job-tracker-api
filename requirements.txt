@@ -3,3 +3,8 @@ uvicorn
 pytest
 httpx
 pydantic~=2.13.4
+python-dotenv
+sqlalchemy
+psycopg2-binary
+python-multipart
+kafka-python

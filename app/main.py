@@ -1,77 +1,83 @@
-from fastapi import FastAPI, HTTPException, status
-from app.schemas import JobCreate, JobResponse
-from app import models
+from fastapi import FastAPI, HTTPException, status, Depends
+from sqlalchemy.orm import Session
 
-app = FastAPI(title="Job Tracker API")
+from app.database import Base, engine, SessionLocal
+from app.models import Document
+from app.schemas import DocumentResponse
+from fastapi import UploadFile, File
+from app.document_service import save_document
+
+Base.metadata.create_all(bind=engine)
+
+app = FastAPI(title="VectorFlow AI")
+
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
 
 @app.get("/")
 def root():
-    return {"Message": "Job Tracker API is running..."}
+    return {"message": "VectorFlow AI API is running"}
 
 
-@app.post("/jobs", response_model=JobResponse, status_code=status.HTTP_201_CREATED)
-def create_job(job: JobCreate):
-    new_job = {
-        "id": models.job_id_counter,
-        "filename": job.filename,
-        "file_type": job.file_type,
-        "status": "queued",
-        "message": "Job created successfully"
-    }
-
-    models.jobs.append(new_job)
-    models.job_id_counter += 1
-
-    return new_job
+@app.get("/documents", response_model=list[DocumentResponse])
+def get_documents(db: Session = Depends(get_db)):
+    return db.query(Document).all()
 
 
-@app.get("/jobs")
-def get_jobs():
-    return models.jobs
+@app.get("/documents/{document_id}", response_model=DocumentResponse)
+def get_document(document_id: int, db: Session = Depends(get_db)):
+    document = db.query(Document).filter(Document.id == document_id).first()
+
+    if not document:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Document not found"
+        )
+
+    return document
 
 
-@app.get("/jobs/{job_id}", response_model=JobResponse)
-def get_job(job_id: int):
-    for job in models.jobs:
-        if job["id"] == job_id:
-            return job
-
-    raise HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND,
-        detail="Job not found."
-    )
-
-
-@app.put("/jobs/{job_id}/status", response_model=JobResponse)
-def update_job_status(job_id: int, new_status: str):
-    allowed_statuses = {"queued", "processing", "completed", "failed"}
+@app.put("/documents/{document_id}/status", response_model=DocumentResponse)
+def update_document_status(
+    document_id: int,
+    new_status: str,
+    db: Session = Depends(get_db)
+):
+    allowed_statuses = {"uploaded", "queued", "processing", "completed", "failed"}
 
     if new_status not in allowed_statuses:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid job status."
+            detail="Invalid document status"
         )
 
-    for job in models.jobs:
-        if job["id"] == job_id:
-            job["status"] = new_status
-            job["message"] = f"Job status updated to {new_status}"
-            return job
+    document = db.query(Document).filter(Document.id == document_id).first()
 
-    raise HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND,
-        detail="Job not found"
-    )
-
-
-@app.delete("/jobs/{job_id}")
-def delete_job(job_id: int):
-    for job in models.jobs:
-        if job["id"] == job_id:
-            models.jobs.remove(job)
-            return {"message": "Job deleted successfully"}
-
+    if not document:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Job not found"
+            detail="Document not found"
         )
+
+    document.status = new_status
+    db.commit()
+    db.refresh(document)
+
+    return document
+
+
+@app.post(
+    "/documents/upload",
+    response_model=DocumentResponse
+)
+def upload_document(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db)
+):
+    return save_document(file, db)

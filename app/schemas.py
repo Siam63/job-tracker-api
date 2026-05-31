@@ -1,15 +1,17 @@
-from pydantic import BaseModel
+from datetime import datetime
 from typing import Optional
 
-
-class JobCreate(BaseModel):
-    filename: str
-    file_type: str
+from pydantic import BaseModel
 
 
-class JobResponse(BaseModel):
+class DocumentResponse(BaseModel):
     id: int
     filename: str
+    file_path: str
     file_type: str
     status: str
-    message: Optional[str] = None
+    created_at: datetime
+    processed_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
