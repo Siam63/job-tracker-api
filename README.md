@@ -19,7 +19,7 @@ This project is being built to explore modern backend engineering concepts inclu
 
 ## Architecture
 
-<img width="722" height="940" alt="VectorFlow Architecture" src="https://github.com/user-attachments/assets/c8da95c8-63b2-4c7d-bb0d-8dbd9c38f5f5" />
+<img width="725" height="937" alt="Screenshot 2026-05-30 at 11 49 17 PM" src="https://github.com/user-attachments/assets/965db730-b13f-4289-b374-c1d51a523fed" />
 
 ---
 
